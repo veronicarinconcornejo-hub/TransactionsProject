@@ -15,4 +15,5 @@ public record ProviderRequest(
         TransactionType type,
         BigDecimal amount,
         String currency
+
 ) {}

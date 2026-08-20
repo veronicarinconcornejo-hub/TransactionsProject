@@ -11,6 +11,8 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.List;
+
 @RestController
 @RequestMapping("/transactions")
 public class TransactionController {
@@ -38,5 +40,9 @@ public class TransactionController {
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "20") int limit) {
         return service.search(accountId, status, type, page, limit);
+    }
+    @GetMapping("/all")
+    public List<TransactionResponse> listAll() {
+        return service.searchAll();
     }
 }

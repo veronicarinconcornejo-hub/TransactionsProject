@@ -84,12 +84,17 @@ public class TransactionService {
         Query query = new Query();
         if (accountId != null) query.addCriteria(Criteria.where("accountId").is(accountId));
         if (status != null)    query.addCriteria(Criteria.where("status").is(status));
-        if (type != null)      query.addCriteria(Criteria.where("type").is(type));
+        if (type != null)      query.addCriteria(Criteria.where("transactionType").is(type));
 
         Pageable pageable = PageRequest.of(page, limit, Sort.by(Sort.Direction.DESC, "createdAt"));
         long total = mongoTemplate.count(query, Transaction.class);
         List<Transaction> results = mongoTemplate.find(query.with(pageable), Transaction.class);
 
         return new PageImpl<>(results.stream().map(TransactionResponse::from).toList(), pageable, total);
+    }
+    public List<TransactionResponse> searchAll() {
+        return repository.findAll().stream()
+                .map(TransactionResponse::from)
+                .toList();
     }
 }

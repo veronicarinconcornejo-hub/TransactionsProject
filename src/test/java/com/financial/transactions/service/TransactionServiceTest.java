@@ -67,7 +67,7 @@ public class TransactionServiceTest {
     void permiteCreditSinLimiteMaximo() {
         TransactionRequest req = request(TransactionType.CREDIT, "50000.00", "MXN");
         when(providerClient.execute(any())).thenReturn(
-                new ProviderResult(true, "txn-1", new BigDecimal("50000.00"), 404, null));
+                new ProviderResult(true, "txn-1", new BigDecimal("50000.00"), "INSUFFICIENT_FUNDS", null));
         when(repository.save(any())).thenAnswer(inv -> inv.getArgument(0));
 
         assertDoesNotThrow(() -> service.execute(req));
@@ -88,7 +88,7 @@ public class TransactionServiceTest {
     void guardaComoExecutedCuandoElProveedorAprueba() {
         TransactionRequest req = request(TransactionType.CREDIT, "1500.00", "MXN");
         when(providerClient.execute(any())).thenReturn(
-                new ProviderResult(true, "txn-789", new BigDecimal("5500.00"), 404, null));
+                new ProviderResult(true, "txn-789", new BigDecimal("5500.00"), "INSUFFICIENT_FUNDS", null));
         when(repository.save(any())).thenAnswer(inv -> inv.getArgument(0));
 
         TransactionResponse res = service.execute(req);
@@ -102,7 +102,7 @@ public class TransactionServiceTest {
     void guardaComoRejectedCuandoElProveedorRechaza() {
         TransactionRequest req = request(TransactionType.CREDIT, "1500.00", "MXN");
         when(providerClient.execute(any())).thenReturn(
-                new ProviderResult(false, null, null, 404, "Sin fondos"));
+                new ProviderResult(false, null, null, "INSUFFICIENT_FUNDS" , "Sin fondos"));
         when(repository.save(any())).thenAnswer(inv -> inv.getArgument(0));
 
         TransactionResponse res = service.execute(req);

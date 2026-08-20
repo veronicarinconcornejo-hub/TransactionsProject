@@ -6,6 +6,6 @@ public record ProviderResult(
         boolean approved,              // ¿el proveedor aprobó la transacción?
         String providerTransactionId, // el "txn-789" que devuelve
         BigDecimal balance,            // el saldo que retorna el proveedor
-        int rejectionCode,          // ej. "INSUFFICIENT_FUNDS" (null si fue aprobada)
+        String rejectionCode,          // ej. "INSUFFICIENT_FUNDS" (null si fue aprobada)
         String rejectionMessage        // el mensaje de error (null si fue aprobada)
 ) {}

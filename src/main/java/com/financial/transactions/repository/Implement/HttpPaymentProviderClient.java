@@ -36,12 +36,12 @@ public class HttpPaymentProviderClient implements PaymentProviderClient {
             if (resp == null) {
                 throw new ProviderException("El proveedor devolvió una respuesta vacía", null);
             }
-            return new ProviderResult(true, resp.transactionId(), resp.balance(), 404, null);
+            return new ProviderResult(true, resp.transactionId(), resp.balance(), null, null);
 
         } catch (RestClientResponseException e) {   // 4xx / 5xx con cuerpo de rechazo
             ProviderResponse error = parseError(e.getResponseBodyAsString());
             if (error != null && "REJECTED".equalsIgnoreCase(error.status())) {
-                return new ProviderResult(false, null, null, e.hashCode(), e.getMessage());
+                return new ProviderResult(false, null, null, error.code(), error.message());
             }
             throw new ProviderException("Respuesta inesperada del proveedor", e);
 
