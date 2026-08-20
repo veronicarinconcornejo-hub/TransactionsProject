@@ -1,0 +1,18 @@
+{
+  "request": {
+    "method": "POST",
+    "url": "/provider/v1/execute"
+  },
+  "response": {
+    "status": 200,
+    "headers": {
+      "Content-Type": "application/json"
+    },
+    "jsonBody": {
+      "transactionId": "txn-800",
+      "status": "APPROVED",
+      "balance": 5500.00,
+      "executedAt": "2025-03-15T10:30:00Z"
+    }
+  }
+}
