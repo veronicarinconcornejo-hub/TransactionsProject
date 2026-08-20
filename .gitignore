@@ -31,3 +31,4 @@ build/
 
 ### VS Code ###
 .vscode/
+mock/wiremock-standalone-3.13.2.jar
