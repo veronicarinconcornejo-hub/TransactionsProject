@@ -1,4 +1,4 @@
-package com.financial.transactions.repository;
+package com.financial.transactions.client;
 
 import com.financial.transactions.dto.ProviderRequest;
 import com.financial.transactions.dto.ProviderResult;

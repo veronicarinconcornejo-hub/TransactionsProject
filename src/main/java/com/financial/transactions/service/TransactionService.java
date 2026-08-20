@@ -1,5 +1,6 @@
 package com.financial.transactions.service;
 
+import com.financial.transactions.client.PaymentProviderClient;
 import com.financial.transactions.dto.ProviderRequest;
 import com.financial.transactions.dto.ProviderResult;
 import com.financial.transactions.dto.TransactionRequest;
@@ -9,7 +10,6 @@ import com.financial.transactions.exceptions.ProviderException;
 import com.financial.transactions.model.Transaction;
 import com.financial.transactions.model.TransactionStatus;
 import com.financial.transactions.model.TransactionType;
-import com.financial.transactions.repository.PaymentProviderClient;
 import com.financial.transactions.repository.TransactionRepository;
 import org.springframework.data.domain.*;
 import org.springframework.data.mongodb.core.MongoTemplate;
@@ -22,6 +22,7 @@ import java.util.List;
 import java.util.UUID;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import io.github.resilience4j.circuitbreaker.CallNotPermittedException;
 
 @Service
 public class TransactionService {
@@ -61,7 +62,15 @@ public class TransactionService {
 
             tx = buildTransaction(request, result);
 
-        } catch (ProviderException e) {
+        }catch(CallNotPermittedException e){
+            logger.warn(
+                    "Circuit Breaker abierto. No se realizó llamada al proveedor para accountId={}",
+                    request.accountId()
+            );
+            tx = buildFailedTransaction(request);
+
+        }
+        catch (ProviderException e) {
 
             logger.error(
                     "Error al comunicarse con el proveedor para accountId={}: {}",
@@ -71,9 +80,7 @@ public class TransactionService {
 
             tx = buildFailedTransaction(request);
         }
-//agregar logs de error, 
-        //spring security o validar ApiKey
-        //agregar reintentos cuando falle conexion con el proveedor y circuitBreaker
+
         Transaction saved = repository.save(tx);
 
         return TransactionResponse.from(saved);

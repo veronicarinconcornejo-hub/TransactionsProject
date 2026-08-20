@@ -2,21 +2,26 @@
   "request": {
     "method": "POST",
     "url": "/provider/v1/execute",
+    "headers": {
+      "X-API-KEY": {
+        "equalTo": "dev-provider-key"
+      }
+    },
     "bodyPatterns": [
       {
-        "matchesJsonPath": "$[?(@.accountId == 'acc-rechazo')]"
+        "matchesJsonPath": "$[?(@.accountId == 'acc-fallo')]"
       }
     ]
   },
   "response": {
-    "status": 402,
+    "status": 500,
     "headers": {
       "Content-Type": "application/json"
     },
     "jsonBody": {
-      "status": "REJECTED",
-      "code": "INSUFFICIENT_FUNDS",
-      "message": "The account does not have enough balance to complete the transaction"
+      "status": "ERROR",
+      "code": "PROVIDER_DOWN",
+      "message": "Proveedor temporalmente no disponible"
     }
   }
 }

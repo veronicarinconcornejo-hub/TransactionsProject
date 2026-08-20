@@ -1,5 +1,6 @@
 package com.financial.transactions.service;
 
+import com.financial.transactions.client.PaymentProviderClient;
 import com.financial.transactions.dto.ProviderResult;
 import com.financial.transactions.dto.TransactionRequest;
 import com.financial.transactions.dto.TransactionResponse;
@@ -7,7 +8,6 @@ import com.financial.transactions.exceptions.BusinessRuleException;
 import com.financial.transactions.model.Transaction;
 import com.financial.transactions.model.TransactionStatus;
 import com.financial.transactions.model.TransactionType;
-import com.financial.transactions.repository.PaymentProviderClient;
 import com.financial.transactions.repository.TransactionRepository;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;

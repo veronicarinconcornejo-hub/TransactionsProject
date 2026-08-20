@@ -1,0 +1,17 @@
+{
+  "request": {
+    "method": "POST",
+    "url": "/provider/v1/executeX"
+  },
+  "response": {
+    "status": 500,
+    "jsonBody": {
+      "status": "ERROR",
+      "code": "PROVIDER_DOWN",
+      "message": "Proveedor temporalmente no disponible"
+    },
+    "headers": {
+      "Content-Type": "application/json"
+    }
+  }
+}

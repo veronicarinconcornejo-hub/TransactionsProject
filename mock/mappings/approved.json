@@ -1,7 +1,17 @@
 {
   "request": {
     "method": "POST",
-    "url": "/provider/v1/execute"
+    "url": "/provider/v1/execute",
+    "headers": {
+      "X-API-KEY": {
+        "equalTo": "dev-provider-key"
+      }
+    },
+    "bodyPatterns": [
+      {
+        "matchesJsonPath": "$[?(@.accountId == 'acc-aprobado')]"
+      }
+    ]
   },
   "response": {
     "status": 200,
@@ -9,10 +19,12 @@
       "Content-Type": "application/json"
     },
     "jsonBody": {
-      "transactionId": "txn-800",
+      "transactionId": "txn-789",
       "status": "APPROVED",
-      "balance": 5500.00,
-      "executedAt": "2025-03-15T10:30:00Z"
+      "balance": 9500.00,
+      "executedAt": "2026-08-20T14:00:00Z",
+      "code": null,
+      "message": null
     }
   }
 }
