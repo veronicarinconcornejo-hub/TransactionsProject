@@ -5,6 +5,7 @@ import com.financial.transactions.dto.ProviderResult;
 import com.financial.transactions.dto.TransactionRequest;
 import com.financial.transactions.dto.TransactionResponse;
 import com.financial.transactions.exceptions.BusinessRuleException;
+import com.financial.transactions.exceptions.ProviderException;
 import com.financial.transactions.model.Transaction;
 import com.financial.transactions.model.TransactionStatus;
 import com.financial.transactions.model.TransactionType;
@@ -19,6 +20,8 @@ import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.List;
 import java.util.UUID;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 @Service
 public class TransactionService {
@@ -30,6 +33,7 @@ public class TransactionService {
     private final PaymentProviderClient providerClient;
     private final TransactionRepository repository;
     private final MongoTemplate mongoTemplate;
+    private static final Logger logger = LoggerFactory.getLogger(TransactionService.class);
 
     public TransactionService(PaymentProviderClient providerClient,
                               TransactionRepository repository, MongoTemplate mongoTemplate) {
@@ -39,13 +43,37 @@ public class TransactionService {
     }
 
     public TransactionResponse execute(TransactionRequest request) {
-        validateBusinessRules(request);   // se valida ANTES de llamar al proveedor
 
-        ProviderResult result = providerClient.execute(new ProviderRequest(
-                request.accountId(), request.type(), request.amount(), request.currency()));
+        validateBusinessRules(request);
 
-        Transaction tx = buildTransaction(request, result);
+        Transaction tx;
 
+        try {
+
+            ProviderResult result = providerClient.execute(
+                    new ProviderRequest(
+                            request.accountId(),
+                            request.type(),
+                            request.amount(),
+                            request.currency()
+                    )
+            );
+
+            tx = buildTransaction(request, result);
+
+        } catch (ProviderException e) {
+
+            logger.error(
+                    "Error al comunicarse con el proveedor para accountId={}: {}",
+                    request.accountId(),
+                    e.getMessage()
+            );
+
+            tx = buildFailedTransaction(request);
+        }
+//agregar logs de error, 
+        //spring security o validar ApiKey
+        //agregar reintentos cuando falle conexion con el proveedor y circuitBreaker
         Transaction saved = repository.save(tx);
 
         return TransactionResponse.from(saved);
@@ -76,6 +104,20 @@ public class TransactionService {
         } else {
             tx.setStatus(TransactionStatus.REJECTED);
         }
+        return tx;
+    }
+    private Transaction buildFailedTransaction(TransactionRequest request) {
+        Transaction tx = new Transaction();
+
+        tx.setId(UUID.randomUUID().toString());
+        tx.setAccountId(request.accountId());
+        tx.setTransactionType(request.type());
+        tx.setAmount(request.amount());
+        tx.setCurrency(request.currency());
+        tx.setDescription(request.description());
+        tx.setCreatedAt(Instant.now());
+        tx.setStatus(TransactionStatus.REJECTED);
+
         return tx;
     }
 
