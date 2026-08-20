@@ -1,9 +1,9 @@
 package com.financial.transactions.repository.Implement;
 
+import com.financial.transactions.client.PaymentProviderClient;
 import com.financial.transactions.dto.ProviderRequest;
 import com.financial.transactions.dto.ProviderResponse;
 import com.financial.transactions.dto.ProviderResult;
-import com.financial.transactions.repository.PaymentProviderClient;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.MediaType;
 import org.springframework.stereotype.Component;
