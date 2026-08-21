@@ -10,6 +10,7 @@ La integración con el proveedor incluye mecanismos de resiliencia mediante
 **timeouts, Retry y Circuit Breaker**, además del envío de una **API Key**
 en las solicitudes realizadas al proveedor externo.
 
+
 ---
 
 ## Tabla de contenidos
@@ -242,7 +243,7 @@ La entidad principal almacenada contiene información como:
 ---
 
 ## Documentación de API con Swagger
-
+LA clave de Autorizacion es ApiKeyExam
 La API cuenta con documentación interactiva mediante **Swagger / OpenAPI**.
 
 Swagger permite:
