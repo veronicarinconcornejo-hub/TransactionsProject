@@ -22,8 +22,31 @@ import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
 
+import com.financial.transactions.client.PaymentProviderClient;
+import com.financial.transactions.dto.ProviderResult;
+import com.financial.transactions.dto.TransactionRequest;
+import com.financial.transactions.dto.TransactionResponse;
+import com.financial.transactions.exceptions.BusinessRuleException;
+import com.financial.transactions.exceptions.ProviderException;
+import com.financial.transactions.model.Transaction;
+import com.financial.transactions.model.TransactionStatus;
+import com.financial.transactions.model.TransactionType;
+import com.financial.transactions.repository.TransactionRepository;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.data.mongodb.core.MongoTemplate;
+
+import java.math.BigDecimal;
+
+import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.*;
+
 @ExtendWith(MockitoExtension.class)
-public class TransactionServiceTest {
+class TransactionServiceTest {
 
     @Mock
     private PaymentProviderClient providerClient;
@@ -34,81 +57,192 @@ public class TransactionServiceTest {
     @Mock
     private MongoTemplate mongoTemplate;
 
-    @InjectMocks
     private TransactionService service;
 
-    private TransactionRequest request(TransactionType type, String amount, String currency) {
-        return new TransactionRequest("acc-123", type, new BigDecimal(amount), currency, "test");
+    @BeforeEach
+    void setUp() {
+        service = new TransactionService(
+                providerClient,
+                repository,
+                mongoTemplate
+        );
     }
 
     @Test
-    void rejectsAmountLessThanOrEqualToMinimum(){
-        TransactionRequest req = request(TransactionType.CREDIT, "1.00", "MXN");
+    void shouldExecuteTransactionWhenProviderApproves() {
 
-        BusinessRuleException ex = assertThrows(BusinessRuleException.class,
-                () -> service.execute(req));
+        TransactionRequest request = new TransactionRequest(
+                "acc-aprobado",
+                TransactionType.CREDIT,
+                new BigDecimal("1500.00"),
+                "MXN",
+                "Transferencia recibida"
+        );
 
-        assertTrue(ex.getMessage().contains("mayor a $1.00"));
-        verifyNoInteractions(providerClient); // valida ANTES de llamar al proveedor
+        ProviderResult providerResult = new ProviderResult(
+                true,
+                "txn-789",
+                new BigDecimal("9500.00"),
+                null,
+                null
+        );
+
+        when(providerClient.execute(any()))
+                .thenReturn(providerResult);
+
+        when(repository.save(any(Transaction.class)))
+                .thenAnswer(invocation -> invocation.getArgument(0));
+
+        TransactionResponse response = service.execute(request);
+
+        assertNotNull(response);
+        assertEquals(TransactionStatus.EXECUTED, response.status());
+        assertEquals("txn-789", response.providerTransactionId());
+        assertEquals(new BigDecimal("9500.00"), response.balanceAfter());
+
+        verify(providerClient, times(1)).execute(any());
+        verify(repository, times(1)).save(any(Transaction.class));
     }
 
     @Test
-    void rechazaDebitQueExcedeElLimite() {
-        TransactionRequest req = request(TransactionType.DEBIT, "10001.00", "MXN");
+    void shouldRejectTransactionWhenProviderRejects() {
 
-        BusinessRuleException ex = assertThrows(BusinessRuleException.class,
-                () -> service.execute(req));
+        TransactionRequest request = new TransactionRequest(
+                "acc-rechazado",
+                TransactionType.DEBIT,
+                new BigDecimal("500.00"),
+                "MXN",
+                "Compra"
+        );
 
-        assertTrue(ex.getMessage().contains("10,000"));
+        ProviderResult providerResult = new ProviderResult(
+                false,
+                null,
+                null,
+                "INSUFFICIENT_FUNDS",
+                "Fondos insuficientes"
+        );
+
+        when(providerClient.execute(any()))
+                .thenReturn(providerResult);
+
+        when(repository.save(any(Transaction.class)))
+                .thenAnswer(invocation -> invocation.getArgument(0));
+
+        TransactionResponse response = service.execute(request);
+
+        assertNotNull(response);
+        assertEquals(TransactionStatus.REJECTED, response.status());
+        assertNull(response.providerTransactionId());
+        assertNull(response.balanceAfter());
+
+        verify(providerClient, times(1)).execute(any());
+        verify(repository, times(1)).save(any(Transaction.class));
+    }
+
+    @Test
+    void shouldCreateRejectedTransactionWhenProviderFails() {
+
+        TransactionRequest request = new TransactionRequest(
+                "acc-fallo",
+                TransactionType.DEBIT,
+                new BigDecimal("500.00"),
+                "MXN",
+                "Prueba error proveedor"
+        );
+
+        when(providerClient.execute(any()))
+                .thenThrow(
+                        new ProviderException(
+                                "No se pudo contactar al proveedor",
+                                new RuntimeException()
+                        )
+                );
+
+        when(repository.save(any(Transaction.class)))
+                .thenAnswer(invocation -> invocation.getArgument(0));
+
+        TransactionResponse response = service.execute(request);
+
+        assertNotNull(response);
+        assertEquals(TransactionStatus.REJECTED, response.status());
+
+        verify(providerClient, times(1)).execute(any());
+        verify(repository, times(1)).save(any(Transaction.class));
+    }
+
+    @Test
+    void shouldThrowExceptionWhenAmountIsOneOrLess() {
+
+        TransactionRequest request = new TransactionRequest(
+                "acc-test",
+                TransactionType.CREDIT,
+                new BigDecimal("1.00"),
+                "MXN",
+                "Monto inválido"
+        );
+
+        BusinessRuleException exception = assertThrows(
+                BusinessRuleException.class,
+                () -> service.execute(request)
+        );
+
+        assertEquals(
+                "El monto debe ser mayor a $1.00",
+                exception.getMessage()
+        );
+
         verifyNoInteractions(providerClient);
+        verify(repository, never()).save(any());
     }
 
     @Test
-    void permiteCreditSinLimiteMaximo() {
-        TransactionRequest req = request(TransactionType.CREDIT, "50000.00", "MXN");
-        when(providerClient.execute(any())).thenReturn(
-                new ProviderResult(true, "txn-1", new BigDecimal("50000.00"), "INSUFFICIENT_FUNDS", null));
-        when(repository.save(any())).thenAnswer(inv -> inv.getArgument(0));
+    void shouldThrowExceptionWhenDebitExceedsMaximumAmount() {
 
-        assertDoesNotThrow(() -> service.execute(req));
-    }
+        TransactionRequest request = new TransactionRequest(
+                "acc-test",
+                TransactionType.DEBIT,
+                new BigDecimal("10000.01"),
+                "MXN",
+                "Monto mayor al permitido"
+        );
 
-    @Test
-    void rechazaMonedaDistintaDeMXN() {
-        TransactionRequest req = request(TransactionType.CREDIT, "1500.00", "USD");
+        BusinessRuleException exception = assertThrows(
+                BusinessRuleException.class,
+                () -> service.execute(request)
+        );
 
-        BusinessRuleException ex = assertThrows(BusinessRuleException.class,
-                () -> service.execute(req));
+        assertEquals(
+                "Una transacción DEBIT no puede exceder $10,000.00",
+                exception.getMessage()
+        );
 
-        assertTrue(ex.getMessage().contains("MXN"));
         verifyNoInteractions(providerClient);
+        verify(repository, never()).save(any());
     }
 
     @Test
-    void guardaComoExecutedCuandoElProveedorAprueba() {
-        TransactionRequest req = request(TransactionType.CREDIT, "1500.00", "MXN");
-        when(providerClient.execute(any())).thenReturn(
-                new ProviderResult(true, "txn-789", new BigDecimal("5500.00"), "INSUFFICIENT_FUNDS", null));
-        when(repository.save(any())).thenAnswer(inv -> inv.getArgument(0));
+    void shouldThrowExceptionWhenCurrencyIsNotMXN() {
 
-        TransactionResponse res = service.execute(req);
+        TransactionRequest request = new TransactionRequest(
+                "acc-test",
+                TransactionType.CREDIT,
+                new BigDecimal("500.00"),
+                "USD",
+                "Moneda inválida"
+        );
 
-        assertEquals(TransactionStatus.EXECUTED, res.status());
-        assertEquals("txn-789", res.providerTransactionId());
-        verify(repository).save(any(Transaction.class));
-    }
+        BusinessRuleException exception = assertThrows(
+                BusinessRuleException.class,
+                () -> service.execute(request)
+        );
 
-    @Test
-    void guardaComoRejectedCuandoElProveedorRechaza() {
-        TransactionRequest req = request(TransactionType.CREDIT, "1500.00", "MXN");
-        when(providerClient.execute(any())).thenReturn(
-                new ProviderResult(false, null, null, "INSUFFICIENT_FUNDS" , "Sin fondos"));
-        when(repository.save(any())).thenAnswer(inv -> inv.getArgument(0));
+        assertEquals(
+                "Solo se aceptan transacciones en MXN",
+                exception.getMessage()
+        );
 
-        TransactionResponse res = service.execute(req);
-
-        assertEquals(TransactionStatus.REJECTED, res.status());
-        assertNull(res.providerTransactionId());
-        verify(repository).save(any(Transaction.class));
+        verifyNoInteractions(providerClient);
+        verify(repository, never()).save(any());
     }
 }

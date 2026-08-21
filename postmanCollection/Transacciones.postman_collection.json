@@ -1,0 +1,190 @@
+{
+  "info": {
+    "_postman_id": "5d043530-15e8-4b44-9af9-ce9af6cb2023",
+    "name": "Transacciones",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "_exporter_id": "20567812"
+  },
+  "item": [
+    {
+      "name": "ejecutar transaccion",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json",
+            "type": "text"
+          },
+          {
+            "key": "X-API-KEY",
+            "value": "ApiKeyExam",
+            "type": "text"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\r\n    \"accountId\": \"userId1\",\r\n    \"type\": \"CREDIT\",\r\n    \"amount\": 155,\r\n    \"currency\": \"MXN\",\r\n    \"description\": \"Transferencia recibida \"\r\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "http://localhost:8080/transactions",
+          "protocol": "http",
+          "host": [
+            "localhost"
+          ],
+          "port": "8080",
+          "path": [
+            "transactions"
+          ]
+        },
+        "description": "Generated from cURL: curl -X POST http://localhost:8080/transactions -H \"Content-Type: application/json\" -d '{\\\"accountId\\\":\\\"acc-123456\\\",\\\"type\\\":\\\"CREDIT\\\",\\\"amount\\\":1500.00,\\\"currency\\\":\\\"MXN\\\",\\\"description\\\":\\\"Transferencia recibida\\\"}'"
+      },
+      "response": []
+    },
+    {
+      "name": "pruebaCircuitBreaker",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json",
+            "type": "text"
+          },
+          {
+            "key": "X-API-KEY",
+            "value": "ApiKeyExam",
+            "type": "text"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\r\n    \"accountId\": \"acc-12345678\",\r\n    \"type\": \"DEBIT\",\r\n    \"amount\": 1000,\r\n    \"currency\": \"MXN\",\r\n    \"description\": \"Transferencia recibida \"\r\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "http://localhost:8080/transactions",
+          "protocol": "http",
+          "host": [
+            "localhost"
+          ],
+          "port": "8080",
+          "path": [
+            "transactions"
+          ]
+        },
+        "description": "Generated from cURL: curl -X POST http://localhost:8080/transactions -H \"Content-Type: application/json\" -d '{\\\"accountId\\\":\\\"acc-123456\\\",\\\"type\\\":\\\"CREDIT\\\",\\\"amount\\\":1500.00,\\\"currency\\\":\\\"MXN\\\",\\\"description\\\":\\\"Transferencia recibida\\\"}'"
+      },
+      "response": []
+    },
+    {
+      "name": "consultar transacciones",
+      "protocolProfileBehavior": {
+        "disableBodyPruning": true
+      },
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "X-API-KEY",
+            "value": "ApiKeyExam",
+            "type": "text"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\r\n  \"accountId\": \"acc-aprobado\",\r\n  \"type\": \"DEBIT\",\r\n  \"amount\": 500,\r\n  \"currency\": \"MXN\",\r\n  \"description\": \"Prueba aprobada\"\r\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "http://localhost:8080/transactions?status=EXECUTED&type=CREDIT&accountId=userId1",
+          "protocol": "http",
+          "host": [
+            "localhost"
+          ],
+          "port": "8080",
+          "path": [
+            "transactions"
+          ],
+          "query": [
+            {
+              "key": "status",
+              "value": "EXECUTED"
+            },
+            {
+              "key": "type",
+              "value": "CREDIT",
+              "type": "text"
+            },
+            {
+              "key": "accountId",
+              "value": "userId1",
+              "type": "text"
+            }
+          ]
+        },
+        "description": "Generated from cURL: curl -X POST http://localhost:8080/transactions -H \"Content-Type: application/json\" -d '{\\\"accountId\\\":\\\"acc-123456\\\",\\\"type\\\":\\\"CREDIT\\\",\\\"amount\\\":1500.00,\\\"currency\\\":\\\"MXN\\\",\\\"description\\\":\\\"Transferencia recibida\\\"}'"
+      },
+      "response": []
+    },
+    {
+      "name": "retries",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json",
+            "type": "text"
+          },
+          {
+            "key": "X-API-KEY",
+            "value": "ApiKeyExam",
+            "type": "text"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\r\n  \"accountId\": \"acc-123456\",\r\n  \"type\": \"DEBIT\",\r\n  \"amount\": 500,\r\n  \"currency\": \"MXN\",\r\n  \"description\": \"Prueba retry\"\r\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "http://localhost:8081/provider/v1/execute",
+          "protocol": "http",
+          "host": [
+            "localhost"
+          ],
+          "port": "8081",
+          "path": [
+            "provider",
+            "v1",
+            "execute"
+          ]
+        },
+        "description": "Generated from cURL: curl -X POST http://localhost:8080/transactions -H \"Content-Type: application/json\" -d '{\\\"accountId\\\":\\\"acc-123456\\\",\\\"type\\\":\\\"CREDIT\\\",\\\"amount\\\":1500.00,\\\"currency\\\":\\\"MXN\\\",\\\"description\\\":\\\"Transferencia recibida\\\"}'"
+      },
+      "response": []
+    }
+  ]
+}

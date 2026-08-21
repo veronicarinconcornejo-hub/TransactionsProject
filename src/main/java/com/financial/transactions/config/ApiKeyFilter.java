@@ -29,6 +29,17 @@ public class ApiKeyFilter extends OncePerRequestFilter {
             HttpServletResponse response,
             FilterChain filterChain
     ) throws ServletException, IOException {
+        String path = request.getRequestURI();
+
+        // 2. Dejamos pasar Swagger sin API Key
+        if (path.startsWith("/swagger-ui")
+                || path.startsWith("/v3/api-docs")
+                || path.equals("/swagger-ui.html")) {
+
+            filterChain.doFilter(request, response);
+            return;
+        }
+
 
         String apiKey = request.getHeader(API_KEY_HEADER);
 
