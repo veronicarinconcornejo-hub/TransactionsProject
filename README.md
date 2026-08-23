@@ -1267,7 +1267,7 @@ Durante el desarrollo del challenge utilicé herramientas de Inteligencia Artifi
 
 Consultar ejemplos de configuración y buenas prácticas.
 Apoyarme en la configuración de Resilience4j, particularmente Retry y Circuit Breaker.
-Apoyarme en la creación y configuración de WireMock para simular el proveedor externo.
+Apoyarme en la configuración de WireMock para simular el proveedor externo.
 Generar una base inicial para algunos tests unitarios, que posteriormente revisé y adapté al comportamiento de la aplicación.
 Apoyarme en la configuración y documentación con Swagger/OpenAPI.
 Resolver dudas puntuales y analizar errores encontrados durante el desarrollo.
