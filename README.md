@@ -1237,7 +1237,7 @@ Entre los escenarios se encuentran:
 La prueba de contexto verifica que el contexto principal de Spring Boot
 pueda cargarse correctamente.
 
-### Ejecutar las pruebas
+ Ejecutar las pruebas
 
 Desde la raíz del proyecto:
 
@@ -1260,3 +1260,15 @@ mvn test
 Las pruebas unitarias utilizan mocks para mantenerlas independientes de
 servicios externos, permitiendo ejecutarlas sin depender del proveedor WireMock
 ni de una base de datos real.
+
+### Uso de Inteligencia Artificial
+
+Durante el desarrollo del challenge utilicé herramientas de Inteligencia Artificial como apoyo para agilizar ciertas tareas de desarrollo, principalmente para:
+
+Consultar ejemplos de configuración y buenas prácticas.
+Apoyarme en la configuración de Resilience4j, particularmente Retry y Circuit Breaker.
+Apoyarme en la creación y configuración de WireMock para simular el proveedor externo.
+Generar una base inicial para algunos tests unitarios, que posteriormente revisé y adapté al comportamiento de la aplicación.
+Apoyarme en la configuración y documentación con Swagger/OpenAPI.
+Resolver dudas puntuales y analizar errores encontrados durante el desarrollo.
+Apoyarme en la estructuración y revisión de la documentación del proyecto.
