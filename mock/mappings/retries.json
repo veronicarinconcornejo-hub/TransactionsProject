@@ -1,7 +1,7 @@
 {
   "request": {
     "method": "POST",
-    "url": "/provider/v1/executeX"
+    "url": "/provider/v1/executex"
   },
   "response": {
     "status": 500,

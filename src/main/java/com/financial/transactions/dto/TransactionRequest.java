@@ -20,6 +20,9 @@ public record TransactionRequest(
 
         @NotBlank(message = "currency es obligatorio")
         String currency,
-        String description
+        String description,
+
+        @NotBlank(message = "userId es obligatorio")
+        String userId
 
         ) { }

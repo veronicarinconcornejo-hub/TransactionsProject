@@ -1,7 +1,7 @@
 {
   "request": {
     "method": "POST",
-    "url": "/provider/v1/execute",
+    "url": "/provider/v1/executellllll",
     "headers": {
       "X-API-KEY": {
         "equalTo": "dev-provider-key"

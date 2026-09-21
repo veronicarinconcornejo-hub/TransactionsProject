@@ -7,6 +7,8 @@ import com.financial.transactions.dto.TransactionRequest;
 import com.financial.transactions.dto.TransactionResponse;
 import com.financial.transactions.exceptions.BusinessRuleException;
 import com.financial.transactions.exceptions.ProviderException;
+import com.financial.transactions.kafka.PaymentEvent;
+import com.financial.transactions.kafka.PaymentEventProducer;
 import com.financial.transactions.model.Transaction;
 import com.financial.transactions.model.TransactionStatus;
 import com.financial.transactions.model.TransactionType;
@@ -34,13 +36,17 @@ public class TransactionService {
     private final PaymentProviderClient providerClient;
     private final TransactionRepository repository;
     private final MongoTemplate mongoTemplate;
+    private final PaymentEventProducer eventProducer;
     private static final Logger logger = LoggerFactory.getLogger(TransactionService.class);
 
     public TransactionService(PaymentProviderClient providerClient,
-                              TransactionRepository repository, MongoTemplate mongoTemplate) {
+                              TransactionRepository repository,
+                              MongoTemplate mongoTemplate,
+                              PaymentEventProducer eventProducer) {
         this.providerClient = providerClient;
         this.repository = repository;
         this.mongoTemplate = mongoTemplate;
+        this.eventProducer = eventProducer;
     }
 
     public TransactionResponse execute(TransactionRequest request) {
@@ -50,7 +56,6 @@ public class TransactionService {
         Transaction tx;
 
         try {
-
             ProviderResult result = providerClient.execute(
                     new ProviderRequest(
                             request.accountId(),
@@ -59,29 +64,43 @@ public class TransactionService {
                             request.currency()
                     )
             );
-
             tx = buildTransaction(request, result);
 
-        }catch(CallNotPermittedException e){
-            logger.warn(
-                    "Circuit Breaker abierto. No se realizó llamada al proveedor para accountId={}",
-                    request.accountId()
-            );
+        } catch (CallNotPermittedException e) {
+            logger.warn("Circuit Breaker abierto. No se realizo llamada al proveedor para accountId={}",
+                    request.accountId());
             tx = buildFailedTransaction(request);
 
-        }
-        catch (ProviderException e) {
-
-            logger.error(
-                    "Error al comunicarse con el proveedor para accountId={}: {}",
-                    request.accountId(),
-                    e.getMessage()
-            );
-
+        } catch (ProviderException e) {
+            logger.error("Error al comunicarse con el proveedor para accountId={}: {}",
+                    request.accountId(), e.getMessage());
             tx = buildFailedTransaction(request);
         }
 
         Transaction saved = repository.save(tx);
+        logger.info(">>> Transaccion guardada en BD: id={}, status={}", saved.getId(), saved.getStatus());
+
+        // publicar el evento segun el resultado
+        PaymentEvent event = new PaymentEvent(
+                "transactionExecuted",                  // eventType
+                saved.getId(),                          // transactionId
+                saved.getUserId(),                      // userId
+                saved.getAccountId(),                   // accountId
+                saved.getTransactionType().toString(),  // type
+                saved.getAmount(),                      // amount
+                saved.getCurrency(),                    // currency
+                saved.getStatus().toString(),           // status
+                obtenerMotivoFallo(saved),              // failureReason
+                java.time.Instant.now());               // timestamp
+
+        if (saved.getStatus() == TransactionStatus.EXECUTED) {
+            logger.info(">>> Publicando evento EXITOSO a Kafka para id={}", saved.getId());
+            eventProducer.publishSuccess(event);
+        } else {
+            logger.info(">>> Publicando evento FALLIDO a Kafka para id={}, status={}",
+                    saved.getId(), saved.getStatus());
+            eventProducer.publishFailure(event);
+        }
 
         return TransactionResponse.from(saved);
     }
@@ -90,7 +109,7 @@ public class TransactionService {
         if (r.amount().compareTo(MIN_AMOUNT) <= 0)
             throw new BusinessRuleException("El monto debe ser mayor a $1.00");
         if (r.type() == TransactionType.DEBIT && r.amount().compareTo(MAX_DEBIT) > 0)
-            throw new BusinessRuleException("Una transacción DEBIT no puede exceder $10,000.00");
+            throw new BusinessRuleException("Una transaccion DEBIT no puede exceder $10,000.00");
         if (!ALLOWED_CURRENCY.equalsIgnoreCase(r.currency()))
             throw new BusinessRuleException("Solo se aceptan transacciones en MXN");
     }
@@ -98,6 +117,7 @@ public class TransactionService {
     private Transaction buildTransaction(TransactionRequest r, ProviderResult result) {
         Transaction tx = new Transaction();
         tx.setId(UUID.randomUUID().toString());
+        tx.setUserId(r.userId());
         tx.setAccountId(r.accountId());
         tx.setTransactionType(r.type());
         tx.setAmount(r.amount());
@@ -113,18 +133,18 @@ public class TransactionService {
         }
         return tx;
     }
+
     private Transaction buildFailedTransaction(TransactionRequest request) {
         Transaction tx = new Transaction();
-
         tx.setId(UUID.randomUUID().toString());
+        tx.setUserId(request.userId());
         tx.setAccountId(request.accountId());
         tx.setTransactionType(request.type());
         tx.setAmount(request.amount());
         tx.setCurrency(request.currency());
         tx.setDescription(request.description());
         tx.setCreatedAt(Instant.now());
-        tx.setStatus(TransactionStatus.REJECTED);
-
+        tx.setStatus(TransactionStatus.FAILED);
         return tx;
     }
 
@@ -141,9 +161,16 @@ public class TransactionService {
 
         return new PageImpl<>(results.stream().map(TransactionResponse::from).toList(), pageable, total);
     }
+
     public List<TransactionResponse> searchAll() {
         return repository.findAll().stream()
                 .map(TransactionResponse::from)
                 .toList();
+    }
+
+    private String obtenerMotivoFallo(Transaction tx) {
+        if (tx.getStatus() == TransactionStatus.REJECTED) return "Rechazada por el proveedor";
+        if (tx.getStatus() == TransactionStatus.FAILED) return "Proveedor no disponible";
+        return null;
     }
 }

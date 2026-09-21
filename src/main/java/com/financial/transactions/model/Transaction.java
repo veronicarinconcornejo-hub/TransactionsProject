@@ -13,6 +13,7 @@ import java.time.Instant;
 @NoArgsConstructor
 @Document(collection = "transactions")
 public class Transaction {
+
     @Id
     @Indexed
     private String id;
@@ -36,5 +37,8 @@ public class Transaction {
     private BigDecimal balanceAfter;
 
     private Instant createdAt;
+
+    @Indexed
+    private String userId;
 
 }
