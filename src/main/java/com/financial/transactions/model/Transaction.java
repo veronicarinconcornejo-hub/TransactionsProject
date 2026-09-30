@@ -41,4 +41,9 @@ public class Transaction {
     @Indexed
     private String userId;
 
+    // Llave de idempotencia: unica, para que Mongo rechace duplicados.
+    // sparse = true permite que las transacciones viejas (sin llave) no choquen entre si.
+    @Indexed(unique = true, sparse = true)
+    private String idempotencyKey;
+
 }

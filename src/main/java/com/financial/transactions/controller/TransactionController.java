@@ -33,16 +33,16 @@ public class TransactionController {
             description = "Ejecuta una transacción CREDIT o DEBIT contra el proveedor externo."
     )
     @ApiResponses({
-            @ApiResponse(
-                    responseCode = "201",
-                    description = "Transacción ejecutada correctamente"
-            )
+            @ApiResponse(responseCode = "201", description = "Transacción ejecutada correctamente"),
+            @ApiResponse(responseCode = "409", description = "La transacción ya fue procesada anteriormente"),
+            @ApiResponse(responseCode = "422", description = "Transacción rechazada")
     })
-
     @PostMapping
-    public ResponseEntity<TransactionResponse> create(@Valid @RequestBody TransactionRequest request) {
+    public ResponseEntity<TransactionResponse> create(
+            @RequestHeader("Idempotency-Key") String idempotencyKey,
+            @Valid @RequestBody TransactionRequest request) {
 
-        TransactionResponse response = service.execute(request);
+        TransactionResponse response = service.execute(request, idempotencyKey);
 
         if (response.status() == TransactionStatus.REJECTED) {
             return ResponseEntity.status(422).body(response);
@@ -55,12 +55,8 @@ public class TransactionController {
             description = "Consulta transacciones utilizando filtros opcionales y paginación."
     )
     @ApiResponses({
-            @ApiResponse(
-                    responseCode = "200",
-                    description = "Consulta realizada correctamente"
-            )
+            @ApiResponse(responseCode = "200", description = "Consulta realizada correctamente")
     })
-
     @GetMapping
     public Page<TransactionResponse> list(
             @RequestParam(required = false) String accountId,
@@ -76,10 +72,7 @@ public class TransactionController {
             description = "Obtiene todas las transacciones almacenadas."
     )
     @ApiResponses({
-            @ApiResponse(
-                    responseCode = "200",
-                    description = "Consulta realizada correctamente"
-            )
+            @ApiResponse(responseCode = "200", description = "Consulta realizada correctamente")
     })
     @GetMapping("/all")
     public List<TransactionResponse> listAll() {
